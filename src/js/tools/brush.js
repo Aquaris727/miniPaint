@@ -571,3 +571,4 @@ class Brush_class extends Base_tools_class {
 }
 
 export default Brush_class;
+//düzeltildi
