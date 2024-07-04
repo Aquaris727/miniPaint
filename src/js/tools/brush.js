@@ -121,38 +121,39 @@ class Brush_class extends Base_tools_class {
 		var _this = this;
 		if (config.TOOL.name != _this.name)
 			return;
-
+	
+		var layer = config.layer; // config nesnesindeki mevcut katmanı alın
+	
 		if (typeof event.changedTouches == "undefined") {
 			//mouse cursor
 			var mouse = _this.get_mouse_info(event);
 			var params = _this.getParams();
 			_this.show_mouse_cursor(mouse.x, mouse.y, params.size, 'circle');
 		}
-
+	
 		var mouse = this.get_mouse_info(event);
 		if (mouse.is_drag == false)
 			return;
 		if (mouse.click_valid == false) {
 			return;
 		}
-
+	
 		var events = [];
 		if (event.changedTouches) {
 			events = event.changedTouches;
-		}
-		else{
+		} else {
 			events.push(event);
 		}
-		for(var i = 0; i < events.length; i++){
+		for (var i = 0; i < events.length; i++) {
 			var identifier = null;
-			if(typeof events[i].identifier != "undefined") {
+			if (typeof events[i].identifier != "undefined") {
 				identifier = events[i].identifier;
 			}
-
-			for(var j = 0; i < this.event_links.length; j++){
-				if(this.event_links[j].identifier == identifier){
+	
+			for (var j = 0; j < layer.event_links.length; j++) {
+				if (layer.event_links[j].identifier == identifier) {
 					//found link
-					_this.mousemove_action(events[i], this.event_links[j].index);
+					_this.mousemove_action(events[i], layer.event_links[j].index);
 					break;
 				}
 			}
@@ -163,33 +164,34 @@ class Brush_class extends Base_tools_class {
 		var _this = this;
 		if (config.TOOL.name != _this.name)
 			return;
-
+	
+		var layer = config.layer; // config nesnesindeki mevcut katmanı alın
+	
 		var mouse = this.get_mouse_info(event);
 		if (mouse.click_valid == false) {
 			return;
 		}
-
+	
 		var events = [];
 		if (event.changedTouches) {
 			events = event.changedTouches;
-		}
-		else{
+		} else {
 			events.push(event);
 		}
-		for(var i = 0; i < events.length; i++){
+		for (var i = 0; i < events.length; i++) {
 			var identifier = null;
-			if(typeof events[i].identifier != "undefined") {
+			if (typeof events[i].identifier != "undefined") {
 				//unlink
 				identifier = events[i].identifier;
 			}
-
-			for(var j = 0; i < this.event_links.length; j++){
-				if(this.event_links[j].identifier == identifier){
-					this.event_links.splice(j, 1);
+	
+			for (var j = 0; j < layer.event_links.length; j++) {
+				if (layer.event_links[j].identifier == identifier) {
+					layer.event_links.splice(j, 1);
 					break;
 				}
 			}
-
+	
 			_this.mouseup_action(events[i]);
 		}
 	}
@@ -198,10 +200,13 @@ class Brush_class extends Base_tools_class {
 		var mouse = this.get_mouse_info(e);
 		if (mouse.click_valid == false)
 			return;
-
+	
 		var params_hash = this.get_params_hash();
-
-		if (config.layer.type != this.name || params_hash != this.params_hash) {
+	
+		// Kullanılacak katmanı config.layer olarak tanımlayın
+		var layer = config.layer;
+	
+		if (layer.type != this.name || params_hash != this.params_hash) {
 			//register new object - current layer is not ours or params changed
 			this.layer = {
 				type: this.name,
@@ -224,43 +229,42 @@ class Brush_class extends Base_tools_class {
 				])
 			);
 			this.params_hash = params_hash;
-
+	
 			//reset event links index
-			this.data_index = 0;
+			layer.data_index = 0; // veya bu değeri katman nesnesine uygun şekilde ayarlayın
 			index = 0;
-			this.event_links = [];
-			this.event_links.push({
+			layer.event_links = [];
+			layer.event_links.push({
 				identifier: event_identifier,
-				index: this.data_index,
+				index: layer.data_index,
 			});
-		}
-		else {
-			const new_data = JSON.parse(JSON.stringify(config.layer.data));
+		} else {
+			const new_data = JSON.parse(JSON.stringify(layer.data));
 			new_data.push([]);
 			app.State.do_action(
 				new app.Actions.Bundle_action('update_brush_layer', 'Update Brush Layer', [
-					new app.Actions.Update_layer_action(config.layer.id, {
+					new app.Actions.Update_layer_action(layer.id, {
 						data: new_data
 					})
 				])
 			);
 		}
-
+	
 		//in case of undo, recalculate index
-		for(var i = index; i >= 0; i++){
-			if(typeof config.layer.data[index] != "undefined"){
+		for(var i = index; i >= 0; i--){
+			if(typeof layer.data[index] != "undefined"){
 				break;
 			}
 			index--;
 		}
-
-		var current_group = config.layer.data[index];
+	
+		var current_group = layer.data[index];
 		var params = this.getParams();
-
+	
 		//detect line size
 		var size = params.size;
 		var new_size = size;
-
+	
 		if (params.pressure == true) {
 			if (this.pressure_supported) {
 				new_size = size * this.pointer_pressure * 2;
@@ -271,15 +275,14 @@ class Brush_class extends Base_tools_class {
 				new_size = Math.round(new_size);
 			}
 		}
-
+	
 		var mouse_coords = this.get_mouse_coordinates_from_event(e);
 		var mouse_x = mouse_coords.x;
 		var mouse_y = mouse_coords.y;
-
-		current_group.push([mouse_x - config.layer.x, mouse_y - config.layer.y, new_size]);
+	
+		current_group.push([mouse_x - layer.x, mouse_y - layer.y, new_size]);
 		this.Base_layers.render();
 	}
-
 	mousemove_action(e, index) {
 		var mouse = this.get_mouse_info(e);
 		if (mouse.is_drag == false)
